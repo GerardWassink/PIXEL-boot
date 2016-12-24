@@ -1,0 +1,131 @@
+#!/bin/sh
+
+# ------------------------------------------------------------------------
+# Program		:	raspi-reboot
+# Author		:	Gerard Wassink
+# Date			:	december 24, 2016
+#
+# Function		:	This script intended for PIXEL implementations on other machines 
+#					than the Raspberry Pi because raspi-config is as of yet not 
+#					available in that distribution. 
+#
+# 					I could not get option 2 to work, so I commented it out.
+#
+#					Stripped parts out of raspi-config 
+#						(https://github.com/RPi-Distro/raspi-config)
+#						just for setting desired boot option:
+#						1. Text console, requiring user to login
+#						2. Text console, automatically logged in as pi user
+#						3. Desktop GUI, requiring user to login
+#						4. Desktop GUI, automatically logged in as pi user
+#
+# ------------------------------------------------------------------------
+# 						GNU LICENSE CONDITIONS
+# ------------------------------------------------------------------------
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+# ------------------------------------------------------------------------
+#				Copyright (C) 2016 Gerard Wassink
+# ------------------------------------------------------------------------
+
+BOOTOPT=$1
+ENGAGE=$2
+REBOOT=False
+
+case "$BOOTOPT" in
+
+#
+# ### 1 Text console, requiring user to login
+#
+	1*)
+		systemctl set-default multi-user.target
+		ln -fs /lib/systemd/system/getty@.service /etc/systemd/system/getty.target.wants/getty@tty1.service
+		if [ "$ENGAGE" = "engage" ]; then
+			REBOOT=True
+		fi
+		;;
+
+#
+# ### 2. Text console, automatically logged in as pi user
+#
+#	2*)
+#		systemctl set-default multi-user.target
+#		ln -fs /etc/systemd/system/autologin@.service /etc/systemd/system/getty.target.wants/getty@tty1.service
+#		if [ "$ENGAGE" = "engage" ]; then
+#			REBOOT=True
+#		fi
+#		;;
+
+#
+# ### 3 Desktop GUI, requiring user to login
+#
+	3*)
+		if [ -e /etc/init.d/lightdm ]; then
+			systemctl set-default graphical.target
+			ln -fs /lib/systemd/system/getty@.service /etc/systemd/system/getty.target.wants/getty@tty1.service
+			sed /etc/lightdm/lightdm.conf -i -e "s/^autologin-user=.*/#autologin-user=/"
+			if [ "$ENGAGE" = "engage" ]; then
+				REBOOT=True
+			fi
+		else
+			echo "Do sudo apt-get install lightdm to allow configuration of boot to desktop"
+			return 1
+		fi
+		;;
+
+#
+# ### 4. Desktop GUI, automatically logged in as pi user
+#
+	4*)
+		if [ -e /etc/init.d/lightdm ]; then
+			if id -u pi > /dev/null 2>&1; then
+				systemctl set-default graphical.target
+				ln -fs /etc/systemd/system/autologin@.service /etc/systemd/system/getty.target.wants/getty@tty1.service
+				sed /etc/lightdm/lightdm.conf -i -e "s/^\(#\|\)autologin-user=.*/autologin-user=pi/"
+				if [ "$ENGAGE" = "engage" ]; then
+					REBOOT=True
+				fi
+			else
+				echo "The pi user has been removed, can't set up boot to desktop"
+			fi
+		else
+			echo "Do sudo apt-get install lightdm to allow configuration of boot to desktop"
+			return 1
+		fi
+		;;
+
+	*)
+		echo "Usage:"
+		echo "	raspi-reboot boot-option [engage]"
+		echo " "
+		echo "boot-option:"
+		echo "	1. Text console, requiring user to login"
+		echo "	3. Desktop GUI, requiring user to login"
+		echo "	4. Desktop GUI, auto-login as pi user (not encouraged)"
+		echo " "
+		echo "User has the option to reboot after the setting has been made by"
+		echo "	specifying 'engage' as second argument"
+		echo " "
+		echo "raspi-reboot - rebooting your system"
+		echo "	remember to run it as root! (use sudo)"
+		echo " "
+		
+		return 1
+		;;
+esac
+
+if [ "$REBOOT" = True ]; then
+	reboot
+fi
