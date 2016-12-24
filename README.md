@@ -1,4 +1,4 @@
-**PIXEL-boot**
+# PIXEL-boot
 
 A script to determine the way your PIXEL OS will boot next time.
 
@@ -13,7 +13,7 @@ I stripped parts out of raspi-config https://github.com/RPi-Distro/raspi-config,
 
 1. Text console, requiring user to login
 
-### 2. Text console, automatically logged in as pi user
+2. Text console, automatically logged in as pi user (not implemented, see above)
 
 3. Desktop GUI, requiring user to login
 
