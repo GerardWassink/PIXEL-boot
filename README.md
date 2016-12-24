@@ -1,4 +1,4 @@
-# PIXEL-boot
+# PIXEL-reboot
 
 A script to determine the way your PIXEL OS will boot next time.
 
